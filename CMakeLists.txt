@@ -1,8 +1,5 @@
-cmake_minimum_required(VERSION 3.0)
-
-if (NOT DEFINED CMAKE_BUILD_TYPE)
-   set (CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
-endif ()
+cmake_minimum_required(VERSION 3.1)
+cmake_policy(VERSION 3.1)
 
 project(arpack C Fortran)
 
@@ -11,7 +8,7 @@ set(arpack_ng_MINOR_VERSION 9)
 set(arpack_ng_PATCH_VERSION 0)
 set(arpack_ng_VERSION ${arpack_ng_MAJOR_VERSION}.${arpack_ng_MINOR_VERSION}.${arpack_ng_PATCH_VERSION})
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 # set C99 standard
 set(CMAKE_C_STANDARD 99)
@@ -24,7 +21,6 @@ if (POLICY CMP0042)
   cmake_policy (SET CMP0042 NEW)
 endif ()
 
-option(BUILD_SHARED_LIBS "Build shared libraries instead of static libraries" ON)
 option(MPI "Enable parallel support" OFF)
 option(ICB "Enable support for *[ae]upd_c with ISO_C_BINDING" OFF)
 option(ICBEXMM "Enable support for matrix market example based on ICB" OFF)
@@ -56,7 +52,7 @@ function(prefixlist list_name prefix)
       list(APPEND ${list_name}_TMP ${prefix}${l} )
     endforeach()
     set(${list_name} "${${list_name}_TMP}" PARENT_SCOPE)
-endfunction(prefixlist)
+endfunction()
 
 function(examples list_name)
     foreach(l ${${list_name}})
@@ -65,7 +61,7 @@ function(examples list_name)
         target_link_libraries(${lwe} arpack BLAS::BLAS LAPACK::LAPACK ${EXTRA_LDFLAGS})
         add_test(NAME "${lwe}_ex" COMMAND ${lwe})
     endforeach()
-endfunction(examples)
+endfunction()
 
 function(pexamples list_name)
     foreach(l ${${list_name}})
@@ -74,7 +70,7 @@ function(pexamples list_name)
         target_link_libraries(${lwe} parpack arpack MPI::MPI_Fortran)
         add_test(NAME "${lwe}_ex" COMMAND mpiexec -n 2 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${lwe})
     endforeach()
-endfunction(pexamples)
+endfunction()
 
 if (PYTHON3)
     enable_language(C CXX) # Boost requirement.
@@ -140,7 +136,7 @@ endif ()
 
 # Enable language(s) before any find_package (in particular before MPI find_package).
 if (ICB)
-    enable_language(C CXX) # For testing binding with c/c++.
+    enable_language(CXX) # For testing binding with c/c++.
 
     set(CMAKE_CXX_STANDARD 11) # OK, since cmake-3.1 only.
 
@@ -163,9 +159,9 @@ else()
     # ICB saves you from old-fashion-boring-cumbersome-fortran/C crap... For arpack symbols (only).
 
     if (SYMBOLSUFFIX)
-        if ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "GNU")
+        if (CMAKE_Fortran_COMPILER_ID MATCHES GNU)
           set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp -ffixed-line-length-none")
-        elseif ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
+        elseif (CMAKE_Fortran_COMPILER_ID MATCHES Intel)
           set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -extend-source")
         else ()
           message(WARNING "build script does not know how to enable your Fortran compiler's preprocessor and support for lines longer than 72 characters: set them manually via FFLAGS.")
@@ -213,7 +209,7 @@ if (MPI)
     endif()
 
     set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAG}")
-    if(CMAKE_SYSTEM_NAME MATCHES "Windows" AND CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+    if(CMAKE_SYSTEM_NAME MATCHES Windows AND CMAKE_Fortran_COMPILER_ID MATCHES GNU)
         set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fallow-invalid-boz")
     endif()
 
@@ -238,9 +234,9 @@ if (MPI)
     endif()
 
     # As MPI can be used with or without ISO_C_BINDING (#ifdef), we need to preprocess code before compiling.
-    if ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "GNU")
+    if (CMAKE_Fortran_COMPILER_ID MATCHES GNU)
       set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp")
-    elseif ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
+    elseif (CMAKE_Fortran_COMPILER_ID MATCHES Intel)
       set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp")
     else ()
       message(WARNING "build script does not know how to preprocess Fortran code: set it manually via FFLAGS.")
@@ -304,9 +300,9 @@ endif()
 # As BLAS/LAPACK does not provide ICB, we may have to deal with symbols the old-fashion-boring-cumbersome-fortran/C way...
 
 if (SYMBOLSUFFIX)
-    if ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "GNU")
+    if (CMAKE_Fortran_COMPILER_ID MATCHES GNU)
       set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp -ffixed-line-length-none")
-    elseif ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
+    elseif (CMAKE_Fortran_COMPILER_ID MATCHES Intel)
       set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -extend-source")
     else ()
       message(WARNING "build script does not know how to enable your Fortran compiler's preprocessor and support for lines longer than 72 characters: set them manually via FFLAGS.")
@@ -427,9 +423,9 @@ set(PYINT "int32" CACHE STRING "int type to be used in python scripts") # PYINT 
 if (INTERFACE64)
     set(PYINT "int64" CACHE STRING "int type to be used in python scripts") # PYINT : int used with python.
     set(INTERFACE64 1)
-    if ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "GNU")
+    if (CMAKE_Fortran_COMPILER_ID MATCHES GNU)
       set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-integer-8")
-    elseif ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
+    elseif (CMAKE_Fortran_COMPILER_ID MATCHES Intel)
       set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -i8")
     else ()
       message(WARNING "build script does not know how to make your Fortran compiler use 64-bit integers: set it manually via FFLAGS.")
@@ -625,7 +621,7 @@ endif()
 ############################
 # TEST
 ############################
-function(build_tests)  
+function(build_tests)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/TESTS)
 
   add_executable(dnsimp_test TESTS/dnsimp.f TESTS/mmio.f TESTS/debug.h)
@@ -782,11 +778,11 @@ function(build_tests)
       add_test(icb_parpack_cpp_tst mpiexec -n 2 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/icb_parpack_cpp)
     endif()
   endif()
-endfunction(build_tests)
+endfunction()
 
 if(TESTS)
     enable_testing()
-    set(CMAKE_CTEST_COMMAND ctest -V)   
+    set(CMAKE_CTEST_COMMAND ctest -V)
     build_tests()
 endif()
 
@@ -907,7 +903,7 @@ function(libsummary title include libraries)
     foreach(lib ${libraries})
         message("      -- link:    ${lib}")
     endforeach()
-endfunction(libsummary)
+endfunction()
 
 function(cprsummary title compiler debug_flags minsizerel_flags release_flags relwithdebinfo_flags more_flags)
     message("   -- ${title}:      ${compiler}")
@@ -923,7 +919,7 @@ function(cprsummary title compiler debug_flags minsizerel_flags release_flags re
     if("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RELWITHDEBINFO")
         message("   -- ${title}FLAGS: ${relwithdebinfo_flags} ${more_flags}")
     endif()
-endfunction(cprsummary)
+endfunction()
 
 message("-- Configuration summary for arpack-ng-${arpack_ng_VERSION}:")
 message("   -- prefix: ${CMAKE_INSTALL_PREFIX}")
